@@ -54,7 +54,7 @@ workflow gvcf_to_denovo {
 		String sample_id = read_table.out[i][0]
 		Array[File] selected_gvcf_columns = select_all(gvcf_columns)
 		Array[File] selected_gvcf_index_columns = select_all(gvcf_index_columns)
-		Array[String] selected_readgroup_id_columns = select_all(rg_id_columns)
+		#Array[String] selected_readgroup_id_columns = select_all(rg_id_columns)
 
 		call merge_trio_gvcf {
 			input:
@@ -69,7 +69,7 @@ workflow gvcf_to_denovo {
 			input:
 				script = dn_script,
 				sample_id = sample_id,
-				trio_readgroup_ids = selected_readgroup_id_columns,
+				trio_readgroup_ids = merge_trio_gvcf.rg_ids,
 				gvcf = merge_trio_gvcf.out_gvcf,
 				pb_min_vaf = pb_min_vaf,
 				par_max_alt = par_max_alt,
@@ -148,6 +148,8 @@ task merge_trio_gvcf {
 
 		tabix -p vcf ~{outfname}
 
+		bcftools query -l ~{outfname} > "ids.txt"
+
 
 	}
 
@@ -161,6 +163,7 @@ task merge_trio_gvcf {
 	output {
 		File out_gvcf = "~{outfname}"
 		File out_gvcf_index = "~{outfname}.tbi"
+		Array[String] rg_ids = read_lines("ids.txt")
 	}
 
 }
@@ -192,6 +195,8 @@ task call_denovos {
 	String output_file = "~{sample_id}~{output_suffix}"
 
 	command {
+
+		echo "~{pb_id} ~{fa_id} ~{mo_id}"
 
 		python3 ${script} -s ~{pb_id} -f ~{fa_id} -m ~{mo_id} -g ~{gvcf} -x ~{pb_min_vaf} -y ~{par_max_alt} -z ~{par_min_dp} -o ~{output_file}
 
@@ -228,10 +233,20 @@ task gather_shards {
 		cat $file | grep -v "^id" >> "tmp.cat.txt"
 		done < ~{write_lines(shards)};
 
+
+		## CHECK THAT DE NOVO CALLSETS ARE NOT EMPTY
 		N_LINES=`wc -l "tmp.cat.txt"`
 		echo "tmp cat: $N_LINES lines"
 
-		(cat "~{header}" "tmp.cat.txt") > "~{output_file}"
+		if [ $N_LINES -le 1 ]; then
+			echo "EMPTY OUTPUT DE NOVO CALLSET"; exit $ERRCODE; 
+		else
+			(cat "~{header}" "tmp.cat.txt") > "~{output_file}"
+		fi
+
+		
+
+
 
 	}
 
