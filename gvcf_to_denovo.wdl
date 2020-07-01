@@ -193,7 +193,7 @@ task call_denovos {
 
 	command {
 
-		python ${script} -s ~{pb_id} -f ~{fa_id} -m ~{mo_id} -g ~{gvcf} -x ~{pb_min_vaf} -y ~{par_max_alt} -z ~{par_min_dp} -o ~{output_file}
+		python3 ${script} -s ~{pb_id} -f ~{fa_id} -m ~{mo_id} -g ~{gvcf} -x ~{pb_min_vaf} -y ~{par_max_alt} -z ~{par_min_dp} -o ~{output_file}
 
 		grep "^id" ~{output_file} > "header.txt"
 	}
@@ -228,7 +228,10 @@ task gather_shards {
 		cat $file | grep -v "^id" >> "tmp.cat.txt"
 		done < ~{write_lines(shards)};
 
-		(cat ~{header} tmp.cat.txt) > "~{output_file}"
+		N_LINES=`wc -l "tmp.cat.txt"`
+		echo "tmp cat: $N_LINES lines"
+
+		(cat "~{header}" "tmp.cat.txt") > "~{output_file}"
 
 	}
 
