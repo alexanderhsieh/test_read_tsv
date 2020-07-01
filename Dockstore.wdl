@@ -238,7 +238,7 @@ task gather_shards {
 		N_LINES=`wc -l "tmp.cat.txt"`
 		echo "tmp cat: $N_LINES lines"
 
-		if [ $N_LINES -le 1 ]; then
+		if [[ $(wc -l < "tmp.cat.txt") -le 1 ]]; then
 			echo "EMPTY OUTPUT DE NOVO CALLSET"; exit $ERRCODE; 
 		else
 			(cat "~{header}" "tmp.cat.txt") > "~{output_file}"
